@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DILIGENCE — 7 personnes, 2 M€, une journée pour décider</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+:root{
+  --bg:#0D1320; --bg2:#111A2C; --panel:#141D30; --line:#243352; --line2:#2E4066;
+  --ink:#EDEAE2; --dim:#93A0BC; --faint:#5C6B8C;
+  --brass:#C9A452; --coral:#E4645A; --green:#5CBE84; --violet:#9D8CF0; --cyan:#5FC6D8;
+  --wood-t:#C9A06A; --wood-f:#A87E4E; --wood-s:#8A6238;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:13px;overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+#app{display:grid;grid-template-rows:56px 1fr 46px;height:100vh}
+header{display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{font-family:'Fraunces';font-weight:700;font-size:19px;letter-spacing:.02em}
+.logo i{color:var(--brass);font-style:normal}
+.hd-sub{color:var(--dim);font-size:11px;border-left:1px solid var(--line);padding-left:16px;line-height:1.35}
+#clock{font-family:'JetBrains Mono';font-weight:600;font-size:14px;color:var(--brass);margin-left:auto}
+#phaseLbl{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
+.hd-ctl{display:flex;gap:6px}
+.hd-ctl button{border:1px solid var(--line2);border-radius:7px;padding:5px 11px;font-size:11px;font-weight:600;color:var(--dim);background:var(--bg2)}
+.hd-ctl button.on{color:#0D1320;background:var(--brass);border-color:var(--brass)}
+.hd-ctl button:hover{color:var(--ink)}
+.hd-ctl button.on:hover{color:#0D1320}
+
+main{display:grid;grid-template-columns:1.6fr .78fr;gap:12px;padding:12px;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel h2{font-family:'Fraunces';font-weight:600;font-size:13.5px;padding:10px 15px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-shrink:0}
+.panel h2 span{margin-left:auto;font-family:'Inter';font-size:9.5px;color:var(--faint);font-weight:500;text-transform:none;letter-spacing:0}
+.rightcol{display:flex;flex-direction:column;gap:12px;min-height:0}
+
+/* ================= MONDE ISOMÉTRIQUE ================= */
+#viewport{position:relative;flex:1;min-height:0;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 12%,#182338 0%,#0D1320 62%);}
+#viewport::after{content:'';position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 120px 30px rgba(6,10,18,.55)}
+#stage{position:absolute;left:50%;top:50%;width:1400px;height:900px;transform-origin:center center}
+#world{position:absolute;left:50%;top:55%;perspective:2200px;perspective-origin:50% 30%}
+#floor{
+  position:absolute;left:0;top:0;width:1100px;height:720px;
+  transform:translate(-50%,-50%) rotateX(57deg) rotateZ(-42deg);
+  transform-style:preserve-3d;
+  background:
+   repeating-linear-gradient(0deg,rgba(255,255,255,.045) 0 1px,transparent 1px 55px),
+   repeating-linear-gradient(90deg,rgba(255,255,255,.045) 0 1px,transparent 1px 55px),
+   linear-gradient(135deg,#33415F 0%,#2A3652 55%,#232E48 100%);
+  border-radius:14px;
+  box-shadow:0 0 0 3px #1A2438, 0 60px 90px rgba(0,0,0,.55);
+}
+#floor>*{position:absolute;transform-style:preserve-3d}
+.mat{border-radius:12px}
+.roomlabel{position:absolute;font-family:'Fraunces';font-weight:600;font-size:15px;
+  color:rgba(237,234,226,.4);letter-spacing:.14em;text-transform:uppercase;pointer-events:none}
+.box{transform-style:preserve-3d}
+.box .f{position:absolute;left:0;top:0;backface-visibility:hidden}
+.shadow{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.38),transparent 70%)}
+
+/* acteurs (billboardés) */
+.actor{position:absolute;width:0;height:0;transform-style:preserve-3d;z-index:5;
+  transition:left 1.9s ease-in-out,top 1.9s ease-in-out}
+.actor .ash{position:absolute;left:-20px;top:-9px;width:40px;height:18px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(0,0,0,.42),transparent 72%)}
+.actor .stand{position:absolute;left:0;top:0;transform:rotateZ(42deg) rotateX(-57deg);
+  transform-origin:0 0;transform-style:preserve-3d}
+.actor .card{position:absolute;left:0;bottom:-6px;transform:translateX(-50%);text-align:center;width:120px}
+.actor .body{display:block;margin:0 auto;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.actor.walking .body .lgL{animation:stepL .32s infinite alternate ease-in-out}
+.actor.walking .body .lgR{animation:stepR .32s infinite alternate ease-in-out}
+.actor.walking .body{animation:sway .32s infinite alternate ease-in-out}
+.lgL,.lgR{transform-box:fill-box;transform-origin:top center}
+@keyframes stepL{from{transform:rotate(-16deg)}to{transform:rotate(16deg)}}
+@keyframes stepR{from{transform:rotate(16deg)}to{transform:rotate(-16deg)}}
+@keyframes sway{from{transform:translateY(0)}to{transform:translateY(-2.5px)}}
+.actor .tag{display:inline-block;background:rgba(13,19,32,.88);border:1.5px solid;border-radius:7px;
+  padding:1px 8px;font-family:'Fraunces';font-weight:600;font-size:12px;margin-top:3px;white-space:nowrap;color:var(--ink)}
+.actor .stat{font-size:9px;font-weight:600;color:var(--dim);margin-top:2px;white-space:nowrap;
+  text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.actor .stat.busy{color:var(--brass)} .actor .stat.block{color:var(--coral)} .actor .stat.ok{color:var(--green)}
+
+.bubble{position:absolute;bottom:calc(100% + 8px);left:0;transform:translateX(-50%);z-index:40;
+  background:#F5F1E6;color:#232018;border-radius:12px;padding:8px 11px;border:1px solid #D8CFB8;
+  font-size:12px;line-height:1.42;width:max-content;max-width:210px;text-align:left;
+  box-shadow:0 10px 26px rgba(0,0,0,.45);animation:popb .25s}
+.bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:8px solid transparent;border-top-color:#F5F1E6}
+.bubble.think{background:#1B2740;color:#B8C2DA;border-color:#33455F;font-style:italic}
+.bubble.think::after{border-top-color:#1B2740}
+@keyframes popb{from{transform:translateX(-50%) scale(.7);opacity:0}}
+
+.pkt{position:absolute;z-index:6;width:16px;height:20px;background:#F5F1E6;border:2px solid #232018;
+  border-radius:3px;transform:rotateZ(42deg) rotateX(-57deg);transform-origin:0 0}
+.pkt::before{content:'';position:absolute;left:3px;top:4px;right:3px;height:2px;background:#9B937E;
+  box-shadow:0 4px 0 #9B937E,0 8px 0 #9B937E}
+
+/* écran mural billboardé */
+.bboard{position:absolute;transform-style:preserve-3d;z-index:4}
+.bboard .stand{position:absolute;transform:rotateZ(42deg) rotateX(-57deg);transform-origin:0 0}
+#dealScreen{width:246px;transform:translateX(-50%);background:#0A1220;border:2px solid var(--line2);
+  border-radius:10px;padding:10px 12px;box-shadow:0 0 34px rgba(95,198,216,.22),0 14px 30px rgba(0,0,0,.5)}
+#dealScreen .dsT{font-family:'Fraunces';font-weight:700;font-size:13px;color:var(--cyan);letter-spacing:.06em;
+  border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:6px}
+#dealScreen .dsL{font-family:'JetBrains Mono';font-size:9.5px;color:var(--dim);line-height:1.75}
+#dealScreen .dsL b{color:var(--ink)} #dealScreen .dsL .hot{color:var(--coral)} #dealScreen .dsL .good{color:var(--green)}
+
+#awayTag{position:absolute;left:14px;bottom:12px;z-index:30;background:rgba(13,19,32,.9);
+  border:1.5px dashed var(--faint);border-radius:9px;padding:5px 10px;font-size:10.5px;color:var(--dim);
+  display:none;max-width:210px;line-height:1.4}
+#banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:45;
+  background:rgba(13,19,32,.94);border:2px solid var(--violet);border-radius:12px;padding:9px 18px;
+  font-family:'Fraunces';font-weight:600;font-size:13.5px;color:var(--violet);display:none;max-width:72%;text-align:center;
+  box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#legend{display:flex;gap:14px;padding:7px 15px;border-top:1px solid var(--line);flex-shrink:0;flex-wrap:wrap}
+#legend b{font-size:9px;color:var(--faint);font-weight:600;display:flex;align-items:center;gap:5px;letter-spacing:.02em}
+#legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+/* ================= TÂCHES ================= */
+#tasks{padding:9px 11px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex-shrink:0}
+#tasks::-webkit-scrollbar{width:5px}#tasks::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.task{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:6px 9px;font-size:11px;line-height:1.3}
+.task .dot{width:19px;height:19px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+  font-family:'Fraunces';font-weight:700;font-size:10px;color:#0D1320}
+.task .tt{flex:1;color:#C9D2E6}
+.task .dep{display:block;font-size:8.5px;color:var(--faint)}
+.chip{font-size:8px;font-weight:700;letter-spacing:.05em;padding:3px 8px;border-radius:20px;white-space:nowrap;text-transform:uppercase}
+.chip.todo{background:#1B2740;color:var(--faint)}
+.chip.doing{background:rgba(201,164,82,.16);color:var(--brass)}
+.chip.waiting{background:#1B2740;color:var(--dim);border:1.5px dashed var(--faint)}
+.chip.problem{background:rgba(228,100,90,.16);color:var(--coral)}
+.chip.done{background:rgba(92,190,132,.15);color:var(--green)}
+.task.new{animation:popf .4s}
+
+/* ================= FLUX ================= */
+#feedPanel{flex:1}
+#feed{flex:1;overflow-y:auto;padding:9px 12px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth}
+#feed::-webkit-scrollbar{width:5px}#feed::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.ev{display:flex;gap:7px;font-size:11px;line-height:1.45;animation:popf .3s;color:#AEB9D2}
+@keyframes popf{from{opacity:0;transform:translateY(5px)}}
+.ev .t{font-family:'JetBrains Mono';font-size:8.5px;color:var(--faint);padding-top:2.5px;flex-shrink:0;width:34px}
+.ev .pd{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:3.5px}
+.ev.alert{background:rgba(228,100,90,.1);border:1px solid rgba(228,100,90,.3);border-radius:9px;padding:6px 8px;color:#F0A9A2}
+.ev.deci{background:rgba(157,140,240,.1);border:1px solid rgba(157,140,240,.3);border-radius:9px;padding:6px 8px;color:#C5BBF5}
+.ev.sysline{color:var(--faint);font-style:italic}
+.ev b{color:var(--ink)}
+
+footer{display:flex;align-items:center;gap:20px;padding:0 20px;background:var(--panel);border-top:1px solid var(--line)}
+.met{display:flex;align-items:baseline;gap:6px}
+.met b{font-family:'JetBrains Mono';font-size:15px}
+.met span{font-size:8.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+#progWrap{flex:1;display:flex;align-items:center;gap:10px}
+#progBar{flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}
+#progFill{height:100%;width:0%;background:linear-gradient(90deg,var(--brass),var(--green));transition:width .8s;border-radius:3px}
+#progPct{font-family:'JetBrains Mono';font-weight:600;font-size:11.5px;width:38px;text-align:right;color:var(--dim)}
+
+/* ================= RECAP ================= */
+.overlay{position:fixed;inset:0;background:rgba(5,8,15,.72);z-index:80;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.show{display:flex}
+.sheet{width:min(660px,92vw);max-height:86vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:30px 34px;line-height:1.6;box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.sheet h3{font-family:'Fraunces';font-size:22px;margin-bottom:4px}
+.sheet .meta{font-size:10.5px;color:var(--dim);border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:14px}
+.sheet h4{font-family:'Fraunces';font-size:14px;margin:15px 0 5px;color:var(--brass)}
+.sheet p,.sheet li{font-size:12.5px;color:#AEB9D2}
+.sheet ul{padding-left:18px}
+.sheet li{margin-bottom:4px}
+.sheet b{color:var(--ink)}
+.rstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.rstats div{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.rstats b{display:block;font-family:'JetBrains Mono';font-size:20px}
+.rstats span{font-size:8.5px;color:var(--faint);text-transform:uppercase;font-weight:600;letter-spacing:.05em}
+.sheet .closeBtn{background:var(--brass);color:#0D1320;border-radius:10px;padding:9px 18px;font-weight:700;font-size:12px;margin-top:16px}
+.sheet .replay{margin-left:10px;border:1px solid var(--line2);border-radius:10px;padding:8px 16px;font-size:12px;color:var(--dim);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1000px){main{grid-template-columns:1fr;grid-template-rows:1.15fr .85fr;overflow-y:auto}body{overflow:auto}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">DILI<i>GENCE</i></div>
+    <div class="hd-sub">Fonds Meridian Capital · Dossier « Kairos » — SaaS de recouvrement B2B<br>7 personnes · décision ce soir : investir 2 M€ ou passer</div>
+    <div id="phaseLbl">ouverture du dossier</div>
+    <div id="clock">09:00</div>
+    <div class="hd-ctl">
+      <button id="btnPause">Pause</button>
+      <button class="spd on" data-s="1">×1</button>
+      <button class="spd" data-s="2">×2</button>
+      <button class="spd" data-s="3">×3</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <h2>Les bureaux du fonds<span>vue isométrique — cliquez Pause pour lire tranquillement</span></h2>
+      <div id="viewport">
+        <div id="stage"><div id="world"><div id="floor"></div></div></div>
+        <div id="awayTag"></div>
+        <div id="banner"></div>
+      </div>
+      <div id="legend">
+        <b><i style="background:var(--brass)"></i>travaille</b>
+        <b><i style="background:var(--faint)"></i>attend une info</b>
+        <b><i style="background:var(--coral)"></i>bloqué / red flag</b>
+        <b><i style="background:var(--violet)"></i>comité / décision</b>
+        <b><i style="background:var(--green)"></i>terminé</b>
+        <b style="margin-left:auto">bulle claire = parle · bulle sombre = pense</b>
+      </div>
+    </div>
+
+    <div class="rightcol">
+      <div class="panel">
+        <h2>Plan de diligence<span>tableau partagé — chacun le lit et l'écrit</span></h2>
+        <div id="tasks"></div>
+      </div>
+      <div class="panel" id="feedPanel">
+        <h2>Fil de la journée<span id="feedCnt">0</span></h2>
+        <div id="feed"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="met"><b id="mMsg">0</b><span>échanges</span></div>
+    <div class="met"><b id="mConf">0</b><span>red flags</span></div>
+    <div class="met"><b id="mDeci">0</b><span>décisions</span></div>
+    <div id="progWrap"><div id="progBar"><div id="progFill"></div></div><div id="progPct">0%</div></div>
+  </footer>
+</div>
+
+<div class="overlay" id="recap"><div class="sheet" id="recapBody"></div></div>
+<script>
+/* ================= CONSTRUCTION DU MONDE ================= */
+const floor=document.getElementById('floor');
+const $=s=>document.querySelector(s);
+
+function shade(hex,f){const n=parseInt(hex.slice(1),16);
+  const r=Math.min(255,Math.max(0,((n>>16)&255)*f)),g=Math.min(255,Math.max(0,((n>>8)&255)*f)),b=Math.min(255,Math.max(0,(n&255)*f));
+  return `rgb(${r|0},${g|0},${b|0})`;}
+
+/* boîte 3D posée sur le sol : (x,y) coin, w×d au sol, h en hauteur */
+function box(x,y,w,d,h,color,opts={}){
+  const b=document.createElement('div');b.className='box';
+  b.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${d}px;`;
+  const glass=opts.glass;
+  const top=glass?'rgba(160,200,225,.20)':shade(color,1.12);
+  const front=glass?'rgba(150,190,220,.26)':shade(color,.88);
+  const side=glass?'rgba(140,180,215,.32)':shade(color,.68);
+  const bd=glass?'border:1.5px solid rgba(190,220,240,.55);':(opts.border?`border:1.5px solid ${shade(color,.5)};`:'');
+  b.innerHTML=
+   `<div class="f" style="width:${w}px;height:${d}px;background:${top};${bd}transform:translateZ(${h}px);border-radius:${opts.r||3}px"></div>
+    <div class="f" style="width:${w}px;height:${h}px;top:${d}px;background:${front};${bd}transform-origin:top center;transform:rotateX(-90deg)"></div>
+    <div class="f" style="width:${h}px;height:${d}px;left:${w}px;background:${side};${bd}transform-origin:center left;transform:rotateY(90deg)"></div>`;
+  if(opts.face){ // écran lumineux sur la face avant
+    b.innerHTML+=`<div class="f" style="width:${w-6}px;height:${h-6}px;left:3px;top:${d+0.5}px;background:${opts.face};
+      transform-origin:top center;transform:rotateX(-90deg) translateZ(1px);border-radius:2px;
+      box-shadow:0 0 18px ${opts.face}"></div>`;}
+  floor.appendChild(b);return b;
+}
+function mat(x,y,w,d,bg,label,lx,ly){
+  const m=document.createElement('div');m.className='mat';
+  m.style.cssText=`left:${x}px;top:${y}px;width:${w}px;height:${d}px;background:${bg};transform:translateZ(1px)`;
+  floor.appendChild(m);
+  if(label){const l=document.createElement('div');l.className='roomlabel';
+    l.style.cssText=`left:${lx??x+12}px;top:${ly??y+8}px;transform:translateZ(2px)`;
+    l.textContent=label;floor.appendChild(l);}
+  return m;
+}
+
+/* ---- pièces ---- */
+mat(50,50,560,320,'linear-gradient(135deg,rgba(201,164,82,.10),rgba(201,164,82,.04))','Open-space analystes');
+mat(650,50,410,380,'linear-gradient(135deg,rgba(95,198,216,.10),rgba(95,198,216,.03))','War room',660,398);
+mat(50,450,150,200,'linear-gradient(135deg,rgba(157,140,240,.12),rgba(157,140,240,.04))','Cabine',60,622);
+mat(240,450,220,190,'linear-gradient(135deg,rgba(92,190,132,.09),rgba(92,190,132,.03))','Bureau associée',250,612);
+mat(480,640,140,80,'rgba(255,255,255,.06)','Entrée',505,700);
+
+/* murs de verre de la war room */
+box(650,44,410,8,110,'#88AACC',{glass:true});
+box(644,44,8,392,110,'#88AACC',{glass:true});
+box(650,428,250,8,110,'#88AACC',{glass:true});
+/* cabine téléphonique vitrée */
+box(50,444,150,8,100,'#88AACC',{glass:true});
+box(44,444,8,206,100,'#88AACC',{glass:true});
+box(194,444,8,206,100,'#88AACC',{glass:true});
+
+/* ---- mobilier ---- */
+function desk(x,y){ box(x,y,120,62,34,'#A87E4E',{r:5});
+  box(x+34,y+6,50,5,30,'#3A465F',{face:'#5FC6D8'}); /* écran */
+  box(x+42,y+78,34,30,17,'#4A5878',{r:8}); /* chaise */ }
+desk(90,110); desk(90,240); desk(360,110); desk(360,240);
+/* table war room */
+box(720,150,270,120,36,'#8A6238',{r:14});
+/* fauteuils war room */
+[[738,110],[850,100],[952,110],[738,290],[850,300],[952,290],[672,180]].forEach(([x,y])=>box(x,y,36,32,18,'#5A4A7A',{r:9}));
+/* bureau associée */
+box(280,490,140,60,34,'#A87E4E',{r:5}); box(322,562,36,30,17,'#4A5878',{r:8});
+box(316,496,54,5,30,'#3A465F',{face:'#C9A452'});
+/* cabine : tabouret + combiné */
+box(100,530,34,30,22,'#5A4A7A',{r:8}); box(58,470,26,20,40,'#3A465F',{face:'#9D8CF0'});
+/* plantes */
+[[615,60],[615,330],[210,655],[1005,470]].forEach(([x,y])=>{
+  box(x,y,30,30,22,'#7A5A3E',{r:15}); box(x+3,y+3,24,24,46,'#3E7A54',{r:12});});
+/* machine à café */
+box(470,560,44,34,42,'#3A465F',{face:'#E4645A',r:4});
+
+/* ---- écran mural du deal (billboardé) ---- */
+const bb=document.createElement('div');bb.className='bboard';
+bb.style.cssText='left:855px;top:66px';
+bb.innerHTML=`<div class="stand"><div id="dealScreen">
+  <div class="dsT">KAIROS — DEAL BOARD</div>
+  <div class="dsL" id="dsBody">
+   ARR ............ <b>480 k€</b><br>
+   Croissance ..... <b>+15 %/mois</b> <i style="color:var(--faint)">(annoncé)</i><br>
+   Demande ........ <b>2 M€ @ 12 M€ pre</b><br>
+   Statut ......... <b>diligence en cours</b></div>
+</div></div>`;
+floor.appendChild(bb);
+function dealBoard(html){$('#dsBody').innerHTML=html;}
+
+/* ================= PERSONNES ================= */
+const PPL={
+  vic:    {n:'Victoria',role:'associée · pilote la décision', shirt:'#C9A452',hair:'#D8D3C6',skin:'#F0C29E',hs:'bun',  x:350,y:585},
+  karim:  {n:'Karim',   role:'analyste marché',               shirt:'#5FC6D8',hair:'#1E1A16',skin:'#B57B4F',hs:'short',x:150,y:205},
+  chloe:  {n:'Chloé',   role:'analyste financière',           shirt:'#E4645A',hair:'#B0662A',skin:'#F7D6B4',hs:'long', x:150,y:335},
+  yannis: {n:'Yannis',  role:'auditeur technique',            shirt:'#5CBE84',hair:'#26201B',skin:'#8C5A3A',hs:'short',x:420,y:205},
+  mael:   {n:'Maël',    role:'juriste',                       shirt:'#7A93C8',hair:'#3B2C20',skin:'#F0C29E',hs:'short',x:420,y:335},
+  aicha:  {n:'Aïcha',   role:'appels de référence',           shirt:'#9D8CF0',hair:'#1E1A16',skin:'#8C5A3A',hs:'bun',  x:330,y:445},
+  dimitri:{n:'Dimitri', role:'avocat du diable',              shirt:'#8B93A8',hair:'#4A4A52',skin:'#E8B894',hs:'short',x:565,y:430}
+};
+function personSVG(p){
+  const hair=p.hs==='long'
+   ?`<path d="M15 11 Q15 2 23 2 Q31 2 31 11 L31 21 Q31 23 29 23 L29 12 L17 12 L17 23 Q15 23 15 21 Z" fill="${p.hair}"/>`
+   :p.hs==='bun'
+   ?`<circle cx="23" cy="3.4" r="3.8" fill="${p.hair}"/><path d="M15.5 11 Q15.5 3 23 3 Q30.5 3 30.5 11 L30.5 12.5 L15.5 12.5 Z" fill="${p.hair}"/>`
+   :`<path d="M15.5 11 Q15.5 3 23 3 Q30.5 3 30.5 11 L30.5 10 L15.5 10 Z" fill="${p.hair}"/>`;
+  return `<svg class="body" width="46" height="58" viewBox="0 0 46 58">
+    <g class="lgL"><rect x="17" y="40" width="5" height="13" rx="2.4" fill="#2E3548"/><ellipse cx="19.5" cy="54" rx="3.6" ry="2" fill="#1E2436"/></g>
+    <g class="lgR"><rect x="24" y="40" width="5" height="13" rx="2.4" fill="#2E3548"/><ellipse cx="26.5" cy="54" rx="3.6" ry="2" fill="#1E2436"/></g>
+    <rect x="12" y="20" width="22" height="23" rx="8" fill="${p.shirt}"/>
+    <rect x="12" y="20" width="22" height="23" rx="8" fill="url(#g${p.n})" opacity=".25"/>
+    <rect x="8.5" y="22" width="5" height="14" rx="2.5" fill="${p.shirt}"/>
+    <rect x="32.5" y="22" width="5" height="14" rx="2.5" fill="${p.shirt}"/>
+    <circle cx="11" cy="37.5" r="2.6" fill="${p.skin}"/><circle cx="35" cy="37.5" r="2.6" fill="${p.skin}"/>
+    <circle cx="23" cy="11.5" r="8.2" fill="${p.skin}"/>
+    ${hair}
+    <circle cx="20" cy="12" r="1" fill="#232018"/><circle cx="26" cy="12" r="1" fill="#232018"/>
+    <path d="M20 15.6 Q23 17.6 26 15.6" stroke="#232018" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+    <defs><linearGradient id="g${p.n}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient></defs>
+  </svg>`;
+}
+Object.entries(PPL).forEach(([id,p])=>{
+  const a=document.createElement('div');a.className='actor';a.id='p-'+id;
+  a.style.left=p.x+'px';a.style.top=p.y+'px';
+  a.innerHTML=`<div class="ash"></div><div class="stand">
+    <div class="card">${personSVG(p)}
+      <div class="tag" style="border-color:${p.shirt}">${p.n}</div>
+      <div class="stat" id="st-${id}">${p.role}</div></div></div>`;
+  floor.appendChild(a);
+});
+
+/* ================= OUTILS DE JEU ================= */
+let M={msg:0,conf:0,deci:0,ev:0},simMin=0;
+function clock(){const t=9*60+simMin,h=Math.floor(t/60)%24,m=t%60;
+  $('#clock').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+function ts(){const t=9*60+simMin,h=Math.floor(t/60)%24,m=t%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+function fev(cls,dot,html){
+  M.ev++;$('#feedCnt').textContent=M.ev;
+  const e=document.createElement('div');e.className='ev'+(cls?' '+cls:'');
+  e.innerHTML=`<div class="t">${ts()}</div>${dot?`<div class="pd" style="background:${dot}"></div>`:''}<div>${html}</div>`;
+  const f=$('#feed');f.appendChild(e);f.scrollTop=f.scrollHeight;
+  while(f.children.length>90)f.removeChild(f.firstChild);
+}
+function walk(id,x,y){
+  const el=$('#p-'+id);el.classList.add('walking');
+  el.style.left=x+'px';el.style.top=y+'px';
+  setTimeout(()=>el.classList.remove('walking'),2000/speed);
+}
+function stat(id,txt,mode){const s=$('#st-'+id);s.textContent=txt;s.className='stat'+(mode?' '+mode:'');}
+let bubbles={};
+function say(id,text,opts={}){
+  const card=$('#p-'+id+' .card');
+  if(bubbles[id]){bubbles[id].remove();delete bubbles[id]}
+  const b=document.createElement('div');b.className='bubble'+(opts.think?' think':'');
+  b.innerHTML=text;b.style.left='50%';
+  card.appendChild(b);bubbles[id]=b;
+  M.msg++;$('#mMsg').textContent=M.msg;
+  fev('',PPL[id].shirt,`<b>${PPL[id].n}</b>${opts.think?' <i>(pense)</i>':''} : ${text}`);
+  const dur=Math.min(Math.max(3000,text.length*56),8600)/speed;
+  setTimeout(()=>{if(bubbles[id]===b){b.remove();delete bubbles[id]}},dur);
+}
+function alertEv(html){M.conf++;$('#mConf').textContent=M.conf;fev('alert',null,html);}
+function deci(html){M.deci++;$('#mDeci').textContent=M.deci;fev('deci',null,html);}
+function sys(t){fev('sysline',null,t);}
+function packet(fromId,toId){
+  const a=$('#p-'+fromId),b=$('#p-'+toId);
+  const x1=parseFloat(a.style.left),y1=parseFloat(a.style.top);
+  const x2=parseFloat(b.style.left),y2=parseFloat(b.style.top);
+  const p=document.createElement('div');p.className='pkt';
+  p.style.left=x1+'px';p.style.top=y1+'px';floor.appendChild(p);
+  p.animate([{left:x1+'px',top:y1+'px'},{left:x2+'px',top:y2+'px'}],
+    {duration:1100/speed,easing:'ease-in-out'}).onfinish=()=>p.remove();
+}
+function exitScene(id,label){
+  walk(id,545,690);
+  setTimeout(()=>{const el=$('#p-'+id);el.style.opacity=0;
+    const t=$('#awayTag');t.style.display='block';t.textContent=label;},2100/speed);
+}
+function enterScene(id,x,y){
+  const el=$('#p-'+id);el.style.left='545px';el.style.top='690px';
+  el.style.opacity=1;$('#awayTag').style.display='none';
+  setTimeout(()=>walk(id,x,y),300/speed);
+}
+function banner(txt,ms){const b=$('#banner');b.innerHTML=txt;b.style.display='block';
+  setTimeout(()=>b.style.display='none',(ms||6500)/speed);}
+
+/* ---- tâches ---- */
+const CHIP={todo:['todo','à faire'],doing:['doing','en cours'],waiting:['waiting','en attente'],problem:['problem','red flag'],done:['done','fait']};
+function task(id,label,owner,dep,isNew){
+  const t=document.createElement('div');t.className='task'+(isNew?' new':'');t.id='task-'+id;
+  t.innerHTML=`<div class="dot" style="background:${PPL[owner].shirt}">${PPL[owner].n[0]}</div>
+    <div class="tt">${label}${dep?`<span class="dep">a besoin de : ${dep}</span>`:''}</div>
+    <div class="chip todo">à faire</div>`;
+  $('#tasks').appendChild(t);
+  if(isNew)sys(`Nouvelle tâche ajoutée au plan : « ${label} »`);
+}
+function setTask(id,mode){const c=$('#task-'+id+' .chip');const[cls,lbl]=CHIP[mode];
+  c.className='chip '+cls;c.textContent=lbl;}
+function prog(p){$('#progFill').style.width=p+'%';$('#progPct').textContent=p+'%';}
+function phase(t){$('#phaseLbl').textContent=t;}
+
+/* ================= MISE À L'ÉCHELLE ================= */
+function fit(){
+  const vp=$('#viewport'),st=$('#stage');
+  const s=Math.min(vp.clientWidth/1280,vp.clientHeight/840);
+  st.style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+window.addEventListener('resize',fit);
+
+/* ================= PLANIFICATEUR ================= */
+let speed=1,paused=false,idx=0,timer=null,SCRIPT=[];
+function runNext(){
+  if(paused||idx>=SCRIPT.length)return;
+  const[dt,fn]=SCRIPT[idx];
+  timer=setTimeout(()=>{simMin+=Math.max(2,Math.round(dt/700));clock();fn();idx++;runNext();},
+    (dt*(0.92+Math.random()*0.16))/speed);
+}
+$('#btnPause').onclick=function(){
+  paused=!paused;this.textContent=paused?'Reprendre':'Pause';this.classList.toggle('on',paused);
+  if(!paused)runNext();else clearTimeout(timer);
+};
+document.querySelectorAll('.spd').forEach(b=>b.onclick=()=>{
+  speed=+b.dataset.s;
+  document.querySelectorAll('.spd').forEach(x=>x.classList.toggle('on',x===b));
+});
+window.replay=()=>location.reload();
+</script>
+
+<script>
+/* ================= SCÉNARIO ================= */
+const P=[];const E=(dt,fn)=>P.push([dt,fn]);
+
+/* --- 1. OUVERTURE --- */
+E(800,()=>{phase('Victoria découpe la diligence');prog(2);
+  sys('Dossier reçu : Kairos, SaaS de recouvrement de factures B2B. Demande : 2 M€ à 12 M€ de valorisation. Décision ce soir.');
+  say('vic','Une journée pour dire oui ou non à 2 M€. Personne ne peut tout vérifier seul : je découpe la diligence en six angles d’attaque.');});
+E(3000,()=>{task('t1','Marché : taille réelle et concurrence','karim');
+  task('t2','Finances : vérifier chaque métrique du deck','chloe');
+  task('t3','Tech : auditer le produit sur place','yannis');});
+E(1500,()=>{task('t4','Juridique : cap table, pacte, clauses','mael','les documents de la data room');
+  task('t5','Références : 8 appels clients + ex-salariés','aicha');
+  task('t6','Contre-analyse : démonter le dossier','dimitri','les conclusions des 5 autres');
+  task('t7','Comité d’investissement : trancher','vic','tout le reste');});
+E(2000,()=>{walk('vic',260,270);});
+E(2200,()=>{say('vic','Karim, Chloé : marché et finances, en parallèle. Vous ne vous attendez pas l’un l’autre.');
+  setTask('t1','doing');setTask('t2','doing');
+  stat('karim','cartographie le marché','busy');stat('chloe','ouvre la data room','busy');});
+E(2600,()=>{say('karim','Le recouvrement B2B... je pars du terrain : combien d’entreprises ont ce problème, et qui le résout déjà.');
+  say('chloe','Règle n°1 : je ne crois aucun chiffre du deck tant que je ne l’ai pas recalculé moi-même depuis les exports bruts.',{think:true});});
+E(2800,()=>{walk('vic',480,270);});
+E(2000,()=>{say('vic','Yannis, va voir leur produit sur place. Un audit tech ne se fait pas sur des captures d’écran.');
+  setTask('t3','doing');});
+E(2400,()=>{say('yannis','Je prends le train, je serai chez Kairos à 11h. Je veux voir le code, pas la démo préparée.');});
+E(2200,()=>{exitScene('yannis','Yannis — parti auditer Kairos sur place, retour en après-midi');
+  sys('Yannis quitte les bureaux. Le reste de l’équipe n’attend pas : chacun avance sur son angle.');stat('yannis','en déplacement','busy');});
+E(2200,()=>{walk('vic',330,470);});
+E(2000,()=>{say('vic','Aïcha, tes 8 appels de référence. Les clients d’abord, puis les anciens salariés — eux disent ce que le deck cache.');
+  setTask('t5','doing');});
+E(2400,()=>{say('aicha','Je m’enferme dans la cabine. Premier appel dans 2 minutes.');walk('aicha',120,545);
+  stat('aicha','appel 1/8 en cours','busy');});
+E(2200,()=>{say('mael','Moi je suis coincé : la data room juridique n’a toujours pas été partagée par Kairos. Je relance leur avocat et j’attends.');
+  stat('mael','attend la data room','block');setTask('t4','waiting');walk('vic',350,585);});
+E(2600,()=>{sys('Maël est bloqué par une dépendance externe : impossible d’auditer des documents qu’on ne lui a pas donnés.');
+  say('dimitri','Et moi j’attends vos conclusions pour les attaquer. En attendant, je prépare mes questions qui fâchent.',{think:true});
+  stat('dimitri','affûte ses objections','busy');prog(14);});
+
+/* --- 2. PREMIÈRES TROUVAILLES --- */
+E(3400,()=>{phase('Les angles avancent en parallèle');
+  say('karim','Premier chiffrage : les cabinets annoncent un marché du recouvrement à 2,3 milliards d’euros en Europe. Énorme.');
+  stat('karim','marché : 2,3 Md€ ?','busy');});
+E(2600,()=>{walk('dimitri',230,190);});
+E(2400,()=>{say('dimitri','2,3 milliards, c’est le chiffre du rapport que la startup cite elle-même dans son deck. Refais-le en partant du bas : combien de clients possibles × combien ils paieraient.');});
+E(2600,()=>{say('karim','...Tu as raison, je reprends. Bottom-up : ~60 000 PME cibles en France × 3 000 €/an = 180 M€ de marché atteignable. Dix fois moins sexy, mais vrai.');
+  stat('karim','SAM recalculé : 180 M€','ok');});
+E(2200,()=>{deci('Karim corrige son analyse après le défi de Dimitri : <b>marché réel 180 M€</b> (bottom-up) au lieu des 2,3 Md€ du deck. Toujours assez grand pour investir.');
+  setTask('t1','done');walk('dimitri',565,430);prog(26);});
+E(2800,()=>{say('aicha','Appels 1 à 4 terminés : deux clients enthousiastes — « on récupère 30 % de factures en plus » — mais deux qui disent « pratique, sans plus ».');
+  stat('aicha','appel 5/8','busy');});
+E(3000,()=>{say('chloe','Attends... Le deck annonce +15 % de croissance par mois. Mais dans l’export brut, je vois des frais d’installation one-shot mélangés à l’abonnement.',{think:true});
+  stat('chloe','recalcule la croissance','busy');});
+E(2600,()=>{walk('chloe',565,410);});
+E(2400,()=>{say('chloe','Dimitri, vérifie mon calcul : si j’enlève le revenu one-shot, la vraie croissance récurrente tombe à +7 % par mois. La moitié du chiffre annoncé.');});
+E(2600,()=>{say('dimitri','Je refais le calcul de mon côté... Confirmé : +7 %. Le deck ne ment pas techniquement, mais il maquille. À 7 %, la valorisation de 12 M€ ne se justifie plus.');});
+E(1600,()=>{alertEv('<b>Red flag n°1 — métriques maquillées</b> : la croissance réelle récurrente est de +7 %/mois, pas +15 %. Détecté par Chloé, contre-vérifié par Dimitri : deux personnes, deux calculs indépendants.');
+  setTask('t2','problem');
+  dealBoard(`ARR ............ <b>480 k€</b><br>Croissance ..... <span class="hot"><b>+7 %/mois réel</b></span> <i style="color:var(--faint)">(15 % annoncé)</i><br>Demande ........ <b>2 M€ @ 12 M€ pre</b><br>Statut ......... <span class="hot"><b>valorisation contestée</b></span>`);});
+E(2600,()=>{walk('chloe',150,335);say('vic','Bon réflexe d’avoir croisé vos calculs. Chloé, chiffre ce que vaudrait Kairos à 7 % de croissance : il nous faut un prix à nous.');
+  stat('chloe','contre-valorisation','busy');});
+E(2600,()=>{say('mael','Data room enfin reçue ! Je plonge dans le pacte d’actionnaires et la cap table.');
+  stat('mael','épluche le pacte','busy');setTask('t4','doing');prog(38);});
+
+/* --- 3. RED FLAG JURIDIQUE + SOUS-TÂCHE --- */
+E(3200,()=>{say('mael','Trouvé. Le fonds du tour précédent a une liquidation préférentielle 2x : en cas de vente, il reprend deux fois sa mise avant tout le monde. Nous compris.');});
+E(1600,()=>{alertEv('<b>Red flag n°2 — clause cachée</b> : liquidation préférentielle 2x du seed précédent. Si Kairos se vend un jour, ce fonds se sert deux fois avant Meridian. Invisible dans le deck, visible dans le pacte.');
+  setTask('t4','problem');});
+E(2400,()=>{walk('mael',350,545);});
+E(2200,()=>{say('mael','Victoria, on ne peut pas investir avec cette clause en l’état. Mais elle se négocie : j’ajoute une tâche « exiger la suppression de la pref 2x » comme condition du deal.');});
+E(1600,()=>{task('t8','Condition : supprimer la liquidation préférentielle 2x','mael',null,true);
+  setTask('t8','doing');walk('mael',420,335);
+  say('vic','Bien. Un red flag négociable n’est pas un motif de refus, c’est un levier de négociation.',{think:true});prog(48);});
+E(3000,()=>{say('aicha','8 appels terminés. Le plus intéressant : l’ancien CTO, parti il y a 6 mois. Verbatim : « le produit est bon, mais le fondateur n’écoute personne ». Deux clients ont dit une variante de la même chose.');
+  stat('aicha','synthèse des appels','busy');});
+E(2400,()=>{walk('aicha',330,445);setTask('t5','done');stat('aicha','8/8 appels faits','ok');
+  sys('Signal faible remonté par les références : gouvernance. Invisible dans les chiffres, décisif dans les faits.');});
+
+/* --- 4. RETOUR DE YANNIS --- */
+E(3000,()=>{phase('L’audit terrain rentre');enterScene('yannis',420,205);});
+E(2400,()=>{say('yannis','Retour de chez Kairos. Deux nouvelles. La bonne : les clients sont opérationnels en 3 jours, le pipeline de relance est solide, ça tient la charge.');});
+E(2600,()=>{say('yannis','La moins bonne : le « moteur IA » du deck, c’est 80 % de règles métier et 20 % d’appels à un modèle du marché. Très bien fait, mais aucune barrière technologique.');
+  stat('yannis','audit rendu','ok');setTask('t3','done');});
+E(2200,()=>{alertEv('<b>Red flag n°3 — « IA » survendue</b> : pas de techno propriétaire. Le produit est excellent en exécution, pas en défensabilité. Un concurrent bien financé peut le copier en 12 mois.');prog(58);});
+E(2800,()=>{say('chloe','Ma contre-valorisation est prête : à +7 %/mois réel et sans barrière tech, Kairos vaut 7 à 9 M€ pre-money. Pas 12.');
+  stat('chloe','valo : 7–9 M€','ok');setTask('t2','done');});
+E(2400,()=>{say('vic','Tous les angles sont rentrés. Comité d’investissement dans la war room. Dimitri, tu ouvres avec le pre-mortem.');});
+
+/* --- 5. COMITÉ D'INVESTISSEMENT --- */
+E(2400,()=>{phase('Comité d’investissement');
+  walk('vic',690,225);walk('karim',755,155);walk('chloe',865,145);walk('yannis',965,155);
+  walk('mael',755,330);walk('aicha',865,345);walk('dimitri',965,330);
+  Object.keys(PPL).forEach(id=>stat(id,'en comité','busy'));
+  sys('── Comité ouvert derrière les murs de verre : investir, négocier ou passer ? ──');});
+E(3200,()=>{say('dimitri','Pre-mortem : nous sommes en 2029, l’investissement a échoué. Pourquoi ? Trois réponses possibles : un concurrent a copié le produit, le fondateur n’a écouté personne, ou on a payé trop cher une croissance moyenne.');});
+E(3000,()=>{say('karim','Côté marché, j’assume : 180 M€ atteignables, vents réglementaires favorables, concurrence encore artisanale. Le terrain de jeu est bon.');});
+E(2800,()=>{say('chloe','Mais pas à ce prix. À 12 M€ pre, on paie la croissance maquillée. À 8 M€, les chiffres réels tiennent : c’est mon prix plafond.');});
+E(2800,()=>{say('yannis','L’exécution produit est la meilleure que j’aie vue cette année. Sans barrière tech, la vitesse est leur seule défense — il faut qu’ils courent.');});
+E(2800,()=>{say('aicha','Le signal gouvernance est réel : trois sources indépendantes. Si on investit, il faut un siège au board et un droit de regard, pas juste un chèque.');});
+E(2600,()=>{say('mael','Et juridiquement : suppression de la pref 2x, sinon rien. C’est non négociable de notre côté.');});
+E(3000,()=>{say('vic','Trois options sur la table. A : investir aux conditions demandées, 12 M€. B : contre-offre à 8 M€ avec suppression de la pref 2x, siège au board, et versement en deux tranches liées aux objectifs. C : on passe. Votez.');});
+E(2600,()=>{say('karim','B.');say('yannis','B, sans hésiter.',{});});
+E(2200,()=>{say('chloe','B.');say('aicha','B, à cause du board seat.');say('mael','B.');});
+E(2600,()=>{say('dimitri','Je vote C. Mon rôle est de rester le dernier sceptique : sans barrière tech, même à 8 M€, on parie uniquement sur la vitesse d’exécution. Que ce soit noté au compte rendu.');});
+E(2800,()=>{say('vic','5 voix pour B, 1 pour C, et l’objection de Dimitri est consignée — c’est précisément à ça qu’il sert. Décision : contre-offre à 8 M€, trois conditions. Je l’envoie ce soir.');});
+E(1800,()=>{deci('<b>Décision du comité (5–1)</b> : contre-offre de 2 M€ à <b>8 M€ pre-money</b> — conditions : suppression de la pref 2x, siège au board, versement en 2 tranches sur objectifs. L’objection de Dimitri est consignée au compte rendu.');
+  banner('Contre-offre votée : 2 M€ @ 8 M€ pre + 3 conditions (5 voix contre 1)');
+  setTask('t7','doing');setTask('t8','done');prog(82);
+  dealBoard(`ARR ............ <b>480 k€</b><br>Croissance ..... <b>+7 %/mois réel</b><br>Contre-offre ... <span class="good"><b>2 M€ @ 8 M€ pre</b></span><br>Conditions ..... <b>pref 2x supprimée · board · 2 tranches</b>`);});
+
+/* --- 6. CLÔTURE --- */
+E(3200,()=>{phase('Clôture du dossier');
+  walk('karim',150,205);walk('chloe',150,335);walk('yannis',420,205);walk('mael',420,335);
+  walk('aicha',330,445);walk('dimitri',565,430);walk('vic',350,585);
+  stat('karim','dossier bouclé','ok');stat('chloe','dossier bouclé','ok');stat('yannis','dossier bouclé','ok');
+  stat('mael','term sheet en rédaction','busy');stat('aicha','dossier bouclé','ok');stat('dimitri','objection consignée','ok');});
+E(2600,()=>{say('mael','Term sheet rédigée avec les trois conditions. Partie chez Kairos. La balle est dans leur camp.');
+  packet('mael','vic');setTask('t7','done');stat('mael','term sheet envoyée','ok');});
+E(2600,()=>{say('vic','Résumé de la journée : le deck disait « 15 % de croissance, 12 M€ ». La diligence dit « 7 % réel, 3 red flags, 8 M€ sous conditions ». Voilà pourquoi on ne décide jamais seul, et jamais sur les chiffres du vendeur.');
+  prog(100);stat('vic','décision rendue','ok');});
+E(2200,()=>{deci('<b>Dossier clos</b> — 8 tâches, 3 red flags détectés, 1 contre-analyse indépendante, 1 décision de comité avec objection consignée. Aucun red flag n’était visible dans le deck.');});
+E(2600,()=>{showRecap();});
+
+SCRIPT=P;
+
+/* ================= RÉCAP ================= */
+function showRecap(){
+  $('#recapBody').innerHTML=`
+  <h3>Ce que ce comité t'apprend sur les systèmes multi-agents</h3>
+  <div class="meta">Une due diligence VC est l'un des meilleurs analogues humains d'une architecture multi-agents : information incomplète, source intéressée à embellir, décision irréversible.</div>
+  <div class="rstats">
+    <div><b>${M.msg}</b><span>échanges</span></div>
+    <div><b>3</b><span>red flags</span></div>
+    <div><b>${M.deci}</b><span>décisions</span></div>
+    <div><b>8</b><span>tâches</span></div>
+  </div>
+  <h4>La traduction, point par point</h4>
+  <ul>
+    <li><b>Victoria</b> = l’orchestrateur : elle découpe la mission en angles indépendants, assigne, et ne produit aucune analyse elle-même. Sa valeur est le découpage et l’arbitrage final.</li>
+    <li><b>Six angles en parallèle</b> = la décomposition : marché, finances, tech, juridique, références, contre-analyse. Chaque agent est spécialisé et ignore le travail des autres jusqu’à la synthèse — c’est ce qui rend les vérifications indépendantes.</li>
+    <li><b>Chloé + Dimitri sur la croissance</b> = la vérification croisée : deux calculs indépendants sur les mêmes données brutes. C’est le mécanisme qui a attrapé le maquillage 15 % → 7 %. Un seul agent, même bon, se serait peut-être fié au deck.</li>
+    <li><b>Dimitri</b> = l’agent adversarial : son objectif est littéralement opposé à celui des autres (démonter le dossier). Le pre-mortem et l’objection consignée au vote sont des protocoles réels — en IA comme en VC, on institutionnalise le désaccord au lieu de l’espérer.</li>
+    <li><b>Maël bloqué puis créant la tâche « pref 2x »</b> = dépendances externes et décomposition dynamique : le plan du matin ne contenait pas cette tâche, elle est née d’une découverte.</li>
+    <li><b>Yannis parti sur place, Aïcha dans sa cabine</b> = agents avec des outils différents : l’un audite du code, l’autre passe des appels. Un bon système donne à chaque agent l’outil de son angle, pas les mêmes outils à tous.</li>
+    <li><b>Le deal board mural</b> = l’état partagé : quand Chloé corrige la croissance, tout le monde voit la correction. Personne ne travaille sur les chiffres périmés du matin.</li>
+    <li><b>Le vote 5–1 avec objection consignée</b> = l’agrégation des jugements : la décision finale n’écrase pas le désaccord, elle l’archive. Si le deal échoue, on saura que le signal existait.</li>
+  </ul>
+  <p style="margin-top:10px"><b>L’idée centrale</b> : chaque agent pris seul aurait rendu un avis incomplet — Karim trop optimiste, Chloé trop prudente, Yannis trop technique. La qualité de la décision vient de la structure : découpage, indépendance des vérifications, adversaire institutionnel, état partagé, protocole de vote. C’est exactement ce qu’on essaie de reproduire quand on architecture des agents IA — et c’est aussi, au passage, comment fonctionne un vrai fonds.</p>
+  <div>
+    <button class="closeBtn" onclick="document.getElementById('recap').classList.remove('show')">Revoir les bureaux</button>
+    <button class="replay" onclick="replay()">Rejouer la journée</button>
+  </div>`;
+  $('#recap').classList.add('show');
+}
+
+/* ================= DÉMARRAGE ================= */
+clock();fit();
+setTimeout(runNext,1000);
+</script>
+
+</body>
+</html>
