@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La soirée pizza — 6 personnes, 1 mission</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+:root{
+  --wall:#8C7B66; --floor:#EBDEC4; --kitchen:#F5E9D2; --salon:#E2EAD9; --office:#E7E0EF;
+  --paper:#FBF7EF; --ink:#2E2A24; --dim:#8A8072; --line:#E4D9C4;
+  --tomato:#D9503F; --basil:#4E9B5E; --cheese:#E8A93A; --wait:#A99F8E; --grape:#8E6FC0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:#F3ECDD;color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:13px;overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+#app{display:grid;grid-template-rows:54px 1fr 44px;height:100vh}
+header{display:flex;align-items:center;gap:16px;padding:0 18px;background:var(--paper);border-bottom:2px solid var(--line)}
+.logo{font-family:'Baloo 2';font-weight:700;font-size:18px}
+.logo i{color:var(--tomato);font-style:normal}
+.hd-sub{color:var(--dim);font-size:11.5px;border-left:2px solid var(--line);padding-left:16px}
+#clock{font-family:'Baloo 2';font-weight:600;font-size:15px;color:var(--tomato);margin-left:auto}
+.hd-ctl{display:flex;gap:6px}
+.hd-ctl button{border:2px solid var(--line);border-radius:8px;padding:5px 11px;font-size:11.5px;font-weight:600;color:var(--dim);background:#fff}
+.hd-ctl button.on{color:#fff;background:var(--tomato);border-color:var(--tomato)}
+
+main{display:grid;grid-template-columns:1.55fr .8fr;gap:12px;padding:12px;min-height:0}
+.panel{background:var(--paper);border:2px solid var(--line);border-radius:14px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel h2{font-family:'Baloo 2';font-weight:700;font-size:13px;color:var(--ink);padding:9px 14px;border-bottom:2px solid var(--line);display:flex;gap:8px;align-items:center;flex-shrink:0}
+.panel h2 span{margin-left:auto;font-size:10px;color:var(--dim);font-weight:500;font-family:'Inter'}
+.rightcol{display:flex;flex-direction:column;gap:12px;min-height:0}
+
+/* ============ SCÈNE ============ */
+#scene{position:relative;flex:1;min-height:0;background:var(--floor);overflow:hidden;
+  background-image:repeating-linear-gradient(90deg,rgba(140,123,102,.10) 0 2px,transparent 2px 64px)}
+.room{position:absolute;border:3px solid var(--wall);border-radius:10px}
+.room .rl{position:absolute;top:5px;left:9px;font-family:'Baloo 2';font-weight:700;font-size:11px;color:var(--wall);letter-spacing:.04em;text-transform:uppercase;opacity:.8}
+#rKitchen{left:2%;top:4%;width:30%;height:44%;background:var(--kitchen)}
+#rSalon{left:35%;top:4%;width:63%;height:52%;background:var(--salon)}
+#rOffice{left:2%;top:53%;width:21%;height:32%;background:var(--office)}
+.prop{position:absolute;border-radius:6px}
+.plabel{position:absolute;font-size:8.5px;color:var(--wall);font-weight:600;text-align:center;width:100%}
+#door{position:absolute;left:26%;bottom:0;width:9%;height:10px;background:#fff;border:3px solid var(--wall);border-bottom:none;border-radius:8px 8px 0 0}
+#door .plabel{top:-15px}
+#awayTag{position:absolute;left:26%;bottom:16px;background:#fff;border:2px dashed var(--wait);border-radius:8px;
+  padding:4px 8px;font-size:10px;color:var(--dim);display:none;max-width:150px;line-height:1.3}
+
+/* table de réunion */
+#meetTable{position:absolute;left:47%;top:63%;width:20%;height:0;padding-bottom:20%;max-height:30%;
+  background:radial-gradient(circle at 40% 35%,#C89B6B,#A97B4C);border-radius:50%;border:4px solid #8A6238;z-index:1}
+#meetTable .plabel{top:42%;color:#5E4224;font-size:9px}
+#banner{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:20;
+  background:#fff;border:3px solid var(--grape);border-radius:12px;padding:8px 16px;
+  font-family:'Baloo 2';font-weight:600;font-size:13px;color:var(--grape);display:none;max-width:70%;text-align:center;
+  box-shadow:0 8px 24px rgba(0,0,0,.12)}
+
+/* ============ PERSONNES ============ */
+.person{position:absolute;z-index:10;width:56px;transform:translate(-50%,-100%);
+  transition:left 1.6s ease-in-out,top 1.6s ease-in-out,opacity .8s;text-align:center}
+.person.walk .body{animation:bob .35s infinite alternate}
+@keyframes bob{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-3px) rotate(2deg)}}
+.person .body{display:block;margin:0 auto}
+.person .tag{background:#fff;border:2px solid var(--line);border-radius:8px;padding:1px 6px;
+  font-family:'Baloo 2';font-weight:700;font-size:10.5px;display:inline-block;margin-top:2px;white-space:nowrap}
+.person .stat{font-size:8.5px;font-weight:600;color:var(--dim);margin-top:1px;white-space:nowrap}
+.person .stat.busy{color:var(--cheese)} .person .stat.block{color:var(--tomato)} .person .stat.ok{color:var(--basil)}
+.bubble{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:30;
+  background:#fff;border:2.5px solid var(--ink);border-radius:12px;padding:7px 10px;
+  font-size:11px;line-height:1.4;width:max-content;max-width:185px;text-align:left;
+  box-shadow:0 6px 16px rgba(0,0,0,.14);animation:popb .25s}
+.bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:7px solid transparent;border-top-color:var(--ink)}
+.bubble.flip{bottom:auto;top:calc(100% + 8px)}
+.bubble.flip::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:var(--ink)}
+.bubble.think{border-style:dashed;font-style:italic;color:var(--dim);border-color:var(--wait)}
+.bubble.think::after{border-top-color:var(--wait)}
+.bubble.flip.think::after{border-top-color:transparent;border-bottom-color:var(--wait)}
+@keyframes popb{from{transform:translateX(-50%) scale(.7);opacity:0}}
+.pkt{position:absolute;z-index:25;pointer-events:none;width:14px;height:17px;background:#fff;
+  border:2px solid var(--ink);border-radius:3px}
+.pkt::before{content:'';position:absolute;left:2px;top:3px;right:2px;height:2px;background:var(--wait);box-shadow:0 4px 0 var(--wait),0 8px 0 var(--wait)}
+
+#legend{display:flex;gap:14px;padding:7px 14px;border-top:2px solid var(--line);flex-shrink:0;flex-wrap:wrap}
+#legend b{font-size:9.5px;color:var(--dim);font-weight:600;display:flex;align-items:center;gap:5px}
+#legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* ============ TÂCHES ============ */
+#tasks{padding:9px 12px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex-shrink:0}
+.task{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid var(--line);border-radius:10px;padding:6px 9px;font-size:11px;line-height:1.3}
+.task .dot{width:18px;height:18px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+  font-family:'Baloo 2';font-weight:700;font-size:9px;color:#fff}
+.task .tt{flex:1}
+.task .dep{display:block;font-size:8.5px;color:var(--dim)}
+.chip{font-size:8.5px;font-weight:700;letter-spacing:.03em;padding:3px 8px;border-radius:20px;white-space:nowrap;text-transform:uppercase}
+.chip.todo{background:#EFE8DA;color:var(--dim)}
+.chip.doing{background:#FCF0D6;color:#B07E13}
+.chip.waiting{background:#EFE8DA;color:var(--dim);border:1.5px dashed var(--wait)}
+.chip.problem{background:#FBE0DC;color:var(--tomato)}
+.chip.done{background:#E1F0E3;color:var(--basil)}
+.task.new{animation:popb .4s}
+
+/* ============ FLUX ============ */
+#feedPanel{flex:1}
+#feed{flex:1;overflow-y:auto;padding:9px 12px;display:flex;flex-direction:column;gap:6px;scroll-behavior:smooth}
+#feed::-webkit-scrollbar{width:5px}#feed::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.ev{display:flex;gap:7px;font-size:11px;line-height:1.45;animation:popf .3s;color:#544D40}
+@keyframes popf{from{opacity:0;transform:translateY(5px)}}
+.ev .t{font-size:9px;color:var(--wait);padding-top:2px;flex-shrink:0;width:32px;font-weight:600}
+.ev .pd{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:3.5px}
+.ev.alert{background:#FBE0DC;border-radius:8px;padding:5px 7px;color:#9E3325}
+.ev.deci{background:#EDE5F7;border-radius:8px;padding:5px 7px;color:#5F4390}
+.ev.sysline{color:var(--wait);font-style:italic}
+.ev b{font-weight:700}
+
+footer{display:flex;align-items:center;gap:20px;padding:0 18px;background:var(--paper);border-top:2px solid var(--line)}
+.met{display:flex;align-items:baseline;gap:6px}
+.met b{font-family:'Baloo 2';font-size:16px}
+.met span{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+#progWrap{flex:1;display:flex;align-items:center;gap:10px}
+#progBar{flex:1;height:8px;background:#EFE8DA;border-radius:4px;overflow:hidden}
+#progFill{height:100%;width:0%;background:linear-gradient(90deg,var(--cheese),var(--basil));transition:width .8s;border-radius:4px}
+#progPct{font-family:'Baloo 2';font-weight:700;font-size:12px;width:38px;text-align:right}
+
+/* ============ RECAP ============ */
+.overlay{position:fixed;inset:0;background:rgba(46,42,36,.55);z-index:50;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.overlay.show{display:flex}
+.sheet{width:min(620px,92vw);max-height:84vh;overflow-y:auto;background:var(--paper);border-radius:16px;padding:28px 32px;line-height:1.6;box-shadow:0 30px 80px rgba(0,0,0,.35)}
+.sheet h3{font-family:'Baloo 2';font-size:20px;margin-bottom:4px}
+.sheet .meta{font-size:10.5px;color:var(--dim);border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:14px}
+.sheet h4{font-family:'Baloo 2';font-size:13px;margin:14px 0 4px;color:var(--tomato)}
+.sheet p,.sheet li{font-size:12.5px;color:#544D40}
+.sheet ul{padding-left:18px}
+.sheet b{color:var(--ink)}
+.rstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.rstats div{background:#fff;border:2px solid var(--line);border-radius:10px;padding:9px;text-align:center}
+.rstats b{display:block;font-family:'Baloo 2';font-size:20px}
+.rstats span{font-size:8.5px;color:var(--dim);text-transform:uppercase;font-weight:600;letter-spacing:.04em}
+.sheet .closeBtn{background:var(--tomato);color:#fff;border-radius:10px;padding:9px 18px;font-weight:700;font-size:12px;margin-top:16px}
+.sheet .replay{margin-left:10px;border:2px solid var(--line);border-radius:10px;padding:8px 16px;font-size:12px;color:var(--dim);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:980px){main{grid-template-columns:1fr;grid-template-rows:1.2fr .8fr;overflow-y:auto}body{overflow:auto}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">La soirée <i>pizza</i></div>
+    <div class="hd-sub">6 personnes · 1 mission : tout doit être prêt pour 20 invités samedi soir</div>
+    <div id="clock">14:00</div>
+    <div class="hd-ctl">
+      <button id="btnPause">Pause</button>
+      <button class="spd on" data-s="1">×1</button>
+      <button class="spd" data-s="2">×2</button>
+      <button class="spd" data-s="3">×3</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <h2>L'appartement<span id="phaseLbl">préparation…</span></h2>
+      <div id="scene">
+        <div class="room" id="rKitchen"><div class="rl">Cuisine</div></div>
+        <div class="room" id="rSalon"><div class="rl">Salon — la fête aura lieu ici</div></div>
+        <div class="room" id="rOffice"><div class="rl">Coin budget</div></div>
+        <!-- props -->
+        <div class="prop" id="pOven" style="left:4%;top:9%;width:8%;height:13%;background:#6B6258;border:3px solid #4E463E"><div class="plabel" style="top:35%;color:#EBDEC4">FOUR</div></div>
+        <div class="prop" style="left:24%;top:7%;width:6%;height:16%;background:#fff;border:3px solid #B9AE9C"><div class="plabel" style="top:40%">frigo</div></div>
+        <div class="prop" style="left:5%;top:33%;width:24%;height:6%;background:#D8C6A4;border:3px solid #B9A47D"><div class="plabel" style="top:8%">plan de travail</div></div>
+        <div class="prop" style="left:48%;top:14%;width:34%;height:15%;background:#C89B6B;border:4px solid #A97B4C;border-radius:12px"><div class="plabel" style="top:34%;color:#5E4224">grande table des invités</div></div>
+        <div class="prop" style="left:38%;top:42%;width:15%;height:9%;background:#9DB3C8;border:3px solid #7A93AB;border-radius:10px"><div class="plabel" style="top:22%;color:#41586E">canapé</div></div>
+        <div class="prop" style="left:4%;top:63%;width:12%;height:7%;background:#D8C6A4;border:3px solid #B9A47D"><div class="plabel" style="top:10%">bureau</div></div>
+        <div id="meetTable"><div class="plabel">table de réunion</div></div>
+        <div id="door"><div class="plabel">porte d'entrée</div></div>
+        <div id="awayTag"></div>
+        <div id="banner"></div>
+      </div>
+      <div id="legend">
+        <b><i style="background:var(--cheese)"></i>occupé·e</b>
+        <b><i style="background:var(--wait)"></i>attend quelqu'un</b>
+        <b><i style="background:var(--tomato)"></i>bloqué·e / problème</b>
+        <b><i style="background:var(--grape)"></i>décision de groupe</b>
+        <b><i style="background:var(--basil)"></i>terminé</b>
+        <b style="margin-left:auto">bulle pleine = parle · bulle pointillée = pense tout haut</b>
+      </div>
+    </div>
+
+    <div class="rightcol">
+      <div class="panel">
+        <h2>Le tableau des tâches<span>affiché sur le frigo — tout le monde le voit</span></h2>
+        <div id="tasks"></div>
+      </div>
+      <div class="panel" id="feedPanel">
+        <h2>Ce qui se passe<span id="feedCnt">0</span></h2>
+        <div id="feed"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="met"><b id="mMsg">0</b><span>échanges</span></div>
+    <div class="met"><b id="mConf">0</b><span>problèmes trouvés</span></div>
+    <div class="met"><b id="mDeci">0</b><span>décisions de groupe</span></div>
+    <div id="progWrap"><div id="progBar"><div id="progFill"></div></div><div id="progPct">0%</div></div>
+  </footer>
+</div>
+
+<div class="overlay" id="recap"><div class="sheet" id="recapBody"></div></div>
+<script>
+/* ============ PERSONNES ============ */
+const PPL={
+  lea:  {n:'Léa',  role:'coordinatrice',        shirt:'#D9503F', hair:'#3B2C20', skin:'#F0C29E', hs:'long', x:34,y:56},
+  nina: {n:'Nina', role:'invitations',          shirt:'#E8A93A', hair:'#1E1A16', skin:'#8C5A3A', hs:'bun',  x:14,y:80},
+  marc: {n:'Marc', role:'budget',               shirt:'#4E7FB0', hair:'#8A8072', skin:'#F0C29E', hs:'short',x:9, y:66},
+  tom:  {n:'Tom',  role:'cuisinier',            shirt:'#4E9B5E', hair:'#B0662A', skin:'#F7D6B4', hs:'short',x:13,y:26},
+  sofia:{n:'Sofia',role:'courses',              shirt:'#8E6FC0', hair:'#4A3325', skin:'#D9A876', hs:'long', x:22,y:88},
+  ines: {n:'Inès', role:'vérificatrice',        shirt:'#C05A78', hair:'#26201B', skin:'#B57B4F', hs:'bun',  x:66,y:44}
+};
+
+function personSVG(p){
+  const hair = p.hs==='long'
+    ? `<path d="M13 9 Q13 1 20 1 Q27 1 27 9 L27 17 Q27 19 25 19 L25 10 L15 10 L15 19 Q13 19 13 17 Z" fill="${p.hair}"/>`
+    : p.hs==='bun'
+    ? `<circle cx="20" cy="3" r="3.4" fill="${p.hair}"/><path d="M13.5 9 Q13.5 2.5 20 2.5 Q26.5 2.5 26.5 9 L26.5 10.5 L13.5 10.5 Z" fill="${p.hair}"/>`
+    : `<path d="M13.5 9 Q13.5 2.5 20 2.5 Q26.5 2.5 26.5 9 L26.5 8.5 L13.5 8.5 Z" fill="${p.hair}"/>`;
+  return `<svg class="body" width="40" height="46" viewBox="0 0 40 46">
+    <ellipse cx="20" cy="44" rx="11" ry="2.4" fill="rgba(0,0,0,.13)"/>
+    <rect x="15" y="34" width="4" height="9" rx="2" fill="#4E463E"/>
+    <rect x="21" y="34" width="4" height="9" rx="2" fill="#4E463E"/>
+    <rect x="11" y="17" width="18" height="19" rx="7" fill="${p.shirt}"/>
+    <rect x="8" y="19" width="4.5" height="12" rx="2.2" fill="${p.shirt}"/>
+    <rect x="27.5" y="19" width="4.5" height="12" rx="2.2" fill="${p.shirt}"/>
+    <circle cx="10.2" cy="32" r="2.3" fill="${p.skin}"/>
+    <circle cx="29.8" cy="32" r="2.3" fill="${p.skin}"/>
+    <circle cx="20" cy="9.5" r="7.2" fill="${p.skin}"/>
+    ${hair}
+    <circle cx="17.4" cy="10" r="0.9" fill="#2E2A24"/>
+    <circle cx="22.6" cy="10" r="0.9" fill="#2E2A24"/>
+    <path d="M17.5 13 Q20 14.8 22.5 13" stroke="#2E2A24" stroke-width="1" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+const scene=document.getElementById('scene');
+Object.entries(PPL).forEach(([id,p])=>{
+  const d=document.createElement('div');
+  d.className='person'; d.id='p-'+id;
+  d.style.left=p.x+'%'; d.style.top=p.y+'%';
+  d.innerHTML=personSVG(p)+`<div class="tag" style="border-color:${p.shirt}">${p.n}</div><div class="stat" id="st-${id}">${p.role}</div>`;
+  scene.appendChild(d);
+});
+
+/* ============ OUTILS ============ */
+const $=s=>document.querySelector(s);
+let M={msg:0,conf:0,deci:0,ev:0};
+let simMin=0;
+function clock(){const t=14*60+simMin,h=Math.floor(t/60)%24,m=t%60;
+  $('#clock').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+function ts(){const t=14*60+simMin,h=Math.floor(t/60)%24,m=t%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+
+function fev(cls,dotColor,html){
+  M.ev++; $('#feedCnt').textContent=M.ev;
+  const e=document.createElement('div'); e.className='ev'+(cls?' '+cls:'');
+  e.innerHTML=`<div class="t">${ts()}</div>${dotColor?`<div class="pd" style="background:${dotColor}"></div>`:''}<div>${html}</div>`;
+  const f=$('#feed'); f.appendChild(e); f.scrollTop=f.scrollHeight;
+  while(f.children.length>80)f.removeChild(f.firstChild);
+}
+
+function walk(id,x,y){
+  const el=$('#p-'+id); el.classList.add('walk');
+  el.style.left=x+'%'; el.style.top=y+'%';
+  setTimeout(()=>el.classList.remove('walk'),1700/speed);
+}
+function stat(id,txt,mode){
+  const s=$('#st-'+id); s.textContent=txt;
+  s.className='stat'+(mode?' '+mode:'');
+}
+let bubbles={};
+function say(id,text,opts={}){
+  const el=$('#p-'+id);
+  if(bubbles[id]){bubbles[id].remove();delete bubbles[id]}
+  const b=document.createElement('div');
+  b.className='bubble'+(opts.think?' think':'');
+  const topPct=parseFloat(el.style.top);
+  if(topPct<30)b.classList.add('flip');
+  b.innerHTML=text;
+  el.appendChild(b); bubbles[id]=b;
+  M.msg++; $('#mMsg').textContent=M.msg;
+  fev('',PPL[id].shirt,`<b>${PPL[id].n}</b>${opts.think?' <i>(pense)</i>':''} : ${text}`);
+  const dur=Math.min(Math.max(2800,text.length*58),8000)/speed;
+  setTimeout(()=>{if(bubbles[id]===b){b.remove();delete bubbles[id]}},dur);
+}
+function alertEv(html){M.conf++;$('#mConf').textContent=M.conf;fev('alert',null,html);}
+function deci(html){M.deci++;$('#mDeci').textContent=M.deci;fev('deci',null,html);}
+function sys(t){fev('sysline',null,t);}
+
+function packet(fromId,toId){
+  const a=$('#p-'+fromId).getBoundingClientRect(),b=$('#p-'+toId).getBoundingClientRect(),o=scene.getBoundingClientRect();
+  const p=document.createElement('div');p.className='pkt';scene.appendChild(p);
+  const x1=a.left+a.width/2-o.left,y1=a.top+20-o.top,x2=b.left+b.width/2-o.left,y2=b.top+20-o.top;
+  p.style.left=x1+'px';p.style.top=y1+'px';
+  p.animate([{left:x1+'px',top:y1+'px'},{left:x2+'px',top:y2+'px'}],
+    {duration:1000/speed,easing:'ease-in-out'}).onfinish=()=>p.remove();
+}
+
+/* départs / retours par la porte */
+function exitScene(id,label){
+  walk(id,29,92);
+  setTimeout(()=>{const el=$('#p-'+id);el.style.opacity=0;
+    const t=$('#awayTag');t.style.display='block';t.textContent=label;},1800/speed);
+}
+function enterScene(id,x,y){
+  const el=$('#p-'+id);el.style.left='29%';el.style.top='92%';
+  el.style.opacity=1;$('#awayTag').style.display='none';
+  setTimeout(()=>walk(id,x,y),300/speed);
+}
+
+/* bannière décision */
+function banner(txt,ms){
+  const b=$('#banner');b.innerHTML=txt;b.style.display='block';
+  setTimeout(()=>b.style.display='none',(ms||6000)/speed);
+}
+
+/* ============ TÂCHES ============ */
+const CHIP={todo:['todo','à faire'],doing:['doing','en cours'],waiting:['waiting','en attente'],problem:['problem','problème'],done:['done','fait']};
+function task(id,label,owner,dep,isNew){
+  const t=document.createElement('div');t.className='task'+(isNew?' new':'');t.id='task-'+id;
+  t.innerHTML=`<div class="dot" style="background:${PPL[owner].shirt}">${PPL[owner].n[0]}</div>
+    <div class="tt">${label}${dep?`<span class="dep">a besoin de : ${dep}</span>`:''}</div>
+    <div class="chip todo">à faire</div>`;
+  $('#tasks').appendChild(t);
+  if(isNew)sys(`Nouvelle tâche ajoutée au tableau : « ${label} »`);
+}
+function setTask(id,mode){
+  const c=$('#task-'+id+' .chip');const[cls,lbl]=CHIP[mode];
+  c.className='chip '+cls;c.textContent=lbl;
+}
+function prog(p){$('#progFill').style.width=p+'%';$('#progPct').textContent=p+'%';}
+function phase(t){$('#phaseLbl').textContent=t;}
+
+/* ============ PLANIFICATEUR ============ */
+let speed=1,paused=false,idx=0,timer=null,SCRIPT=[];
+function runNext(){
+  if(paused||idx>=SCRIPT.length)return;
+  const[dt,fn]=SCRIPT[idx];
+  timer=setTimeout(()=>{simMin+=Math.max(1,Math.round(dt/1000));clock();fn();idx++;runNext();},
+    (dt*(0.92+Math.random()*0.16))/speed);
+}
+$('#btnPause').onclick=function(){
+  paused=!paused;this.textContent=paused?'Reprendre':'Pause';this.classList.toggle('on',paused);
+  if(!paused)runNext();else clearTimeout(timer);
+};
+document.querySelectorAll('.spd').forEach(b=>b.onclick=()=>{
+  speed=+b.dataset.s;
+  document.querySelectorAll('.spd').forEach(x=>x.classList.toggle('on',x===b));
+});
+window.replay=()=>location.reload();
+</script>
+
+<script>
+/* ============ SCÉNARIO ============ */
+const P=[];const E=(dt,fn)=>P.push([dt,fn]);
+
+/* --- Mise en place --- */
+E(700,()=>{phase('Léa découpe la mission');prog(2);
+  sys('Mission : « Organiser une soirée pizza pour 20 invités samedi soir. »');
+  say('lea','Une grosse mission, personne ne peut la faire seul. Je la découpe en petites tâches et je les distribue.');});
+E(2600,()=>{task('t1','Inviter les 20 personnes et compter qui vient','nina');
+  task('t2','Fixer le budget','marc','le nombre d’invités (t1)');
+  task('t3','Calculer les pizzas + écrire la liste de courses','tom','le nombre d’invités (t1)');});
+E(1400,()=>{task('t4','Faire les courses','sofia','le budget (t2) et la liste (t3)');
+  task('t5','Préparer le salon','nina');
+  task('t6','Cuisiner les pizzas','tom','les courses (t4)');
+  task('t7','Tout vérifier avant la fête','ines');});
+E(1600,()=>{walk('lea',18,74);});
+E(2000,()=>{say('lea','Nina, tu envoies les invitations et tu me dis combien de personnes viennent. Tout le monde attend ton chiffre.');
+  setTask('t1','doing');});
+E(2600,()=>{say('nina','Je m’en occupe, j’envoie les messages tout de suite.');stat('nina','envoie les invitations','busy');});
+E(2200,()=>{walk('lea',13,60);});
+E(1900,()=>{say('lea','Marc, à toi le budget.');});
+E(2300,()=>{say('marc','Impossible pour l’instant : sans savoir combien de personnes viennent, je ne peux rien chiffrer. J’attends Nina.');
+  stat('marc','attend Nina','block');setTask('t2','waiting');});
+E(2600,()=>{sys('Marc est bloqué : sa tâche dépend de celle de Nina. Il ne peut pas commencer avant elle.');
+  walk('lea',20,32);});
+E(2000,()=>{say('lea','Tom, tu calcules combien de pizzas il faut et tu écris la liste de courses.');});
+E(2400,()=>{say('tom','Moi aussi j’attends le chiffre de Nina. Mais je peux déjà sortir mes recettes en attendant.',{});
+  stat('tom','prépare ses recettes','busy');setTask('t3','waiting');});
+E(2300,()=>{walk('lea',56,44);});
+E(2000,()=>{say('lea','Inès, ton rôle : vérifier le travail des autres. Personne ne contrôle son propre travail, on rate toujours ses propres erreurs.');});
+E(2700,()=>{say('ines','Compris. Je relis tout ce qui passe, et je dis franchement quand quelque chose cloche.');
+  stat('ines','surveille tout','busy');setTask('t7','doing');});
+E(2200,()=>{say('sofia','Et moi je ne peux rien faire du tout : pas de liste, pas de budget, pas de courses. J’attends Tom et Marc.',{think:true});
+  stat('sofia','attend Tom et Marc','block');setTask('t4','waiting');walk('lea',34,56);prog(12);});
+
+/* --- L'info arrive, tout se débloque en chaîne --- */
+E(3200,()=>{phase('L’information circule, chacun se débloque');
+  say('nina','Réponses reçues ! 18 personnes viennent sur 20. Attention : 2 végétariens et 1 allergique au gluten.');
+  stat('nina','a compté : 18 invités','ok');});
+E(2400,()=>{packet('nina','marc');packet('nina','tom');
+  sys('Nina transmet l’info à Marc et Tom — c’est elle que tout le monde attendait.');
+  setTask('t1','done');});
+E(1800,()=>{say('marc','18 invités, parfait. Je fixe le budget : 80 euros maximum pour les courses.');
+  stat('marc','budget fixé : 80 €','ok');setTask('t2','done');packet('marc','sofia');prog(24);});
+E(2600,()=>{say('tom','Alors : 18 invités × 2 parts chacun = 36 parts. Une pizza fait 4 parts, donc 9 pizzas. J’écris la liste.');
+  stat('tom','calcule les pizzas','busy');setTask('t3','doing');});
+E(2400,()=>{packet('tom','sofia');say('tom','Sofia, ma liste de courses est prête !');setTask('t3','done');});
+
+/* --- CONFLIT 1 : Inès repère les erreurs de Tom --- */
+E(2200,()=>{walk('ines',22,30);stat('ines','vérifie les calculs de Tom','busy');});
+E(2200,()=>{say('ines','Stop, Sofia, n’achète rien ! Tom, deux erreurs : à une soirée on mange 3 parts, pas 2. Et tu as oublié l’invité allergique au gluten.');});
+E(1200,()=>{alertEv('<b>Inès a trouvé 2 erreurs</b> dans la liste de Tom : parts sous-estimées + allergie oubliée. Sans elle, il aurait manqué un tiers des pizzas.');
+  setTask('t3','problem');stat('tom','recalcule tout','block');});
+E(2800,()=>{say('tom','Tu as raison, bien vu. Je recalcule : 18 × 3 = 54 parts, donc 12 pizzas... dont 1 sans gluten et 3 végétariennes. Nouvelle liste !');});
+E(2200,()=>{packet('tom','sofia');setTask('t3','done');stat('tom','liste corrigée','ok');
+  say('ines','Voilà. Une erreur trouvée maintenant coûte 2 minutes. Trouvée samedi soir, elle coûtait la fête.',{think:true});
+  walk('ines',66,44);prog(34);});
+
+/* --- CONFLIT 2 : le budget ne passe pas --- */
+E(3000,()=>{phase('Un problème que personne ne peut trancher seul');
+  say('sofia','Aïe. J’ai chiffré la nouvelle liste : 95 euros. Marc, ça dépasse ton budget de 15 euros.');
+  stat('sofia','devis : 95 € > 80 €','block');setTask('t4','problem');});
+E(2600,()=>{say('marc','Hors de question de dépasser. Il faut couper quelque part.');stat('marc','refuse de dépasser','block');});
+E(2200,()=>{say('tom','Et hors de question de faire moins de pizzas, les invités auraient faim !');});
+E(2200,()=>{alertEv('<b>Conflit</b> : Sofia a besoin de 95 €, Marc en donne 80, Tom refuse de réduire les quantités. Chacun a raison de son point de vue.');
+  say('lea','Personne ne tranche seul dans son coin. Tout le monde à la table de réunion, on décide ensemble.');});
+
+/* --- RÉUNION --- */
+E(2200,()=>{phase('Réunion : décision de groupe');
+  walk('lea',48,68);walk('marc',57,64);walk('tom',66,68);
+  walk('sofia',48,88);walk('nina',57,92);walk('ines',66,88);
+  Object.keys(PPL).forEach(id=>stat(id,'en réunion','busy'));
+  sys('── Réunion ouverte : comment faire rentrer 12 pizzas dans 80 € ? ──');});
+E(2800,()=>{say('lea','Trois options. A : passer à 10 pizzas. B : monter le budget à 95 €. C : remplacer la mozzarella spéciale par de la classique, ça enlève 18 €.');});
+E(3000,()=>{say('tom','Pas l’option A : 10 pizzas pour 18 personnes, c’est des invités affamés. Moi je vote B, la qualité d’abord.');});
+E(2600,()=>{say('marc','Pas l’option B : un budget qu’on dépasse dès le premier problème n’est pas un budget. Je vote C.');});
+E(2600,()=>{say('sofia','L’option C tient la route : une fois cuite au four, la différence de mozzarella se sent à peine. Je vote C.');});
+E(2400,()=>{say('nina','C aussi. Les invités viennent pour la soirée, pas pour juger le fromage.');});
+E(2600,()=>{say('ines','Je vote C, à une condition : je goûte tout avant de servir pour vérifier que ça reste bon.');});
+E(2200,()=>{say('lea','Donc : C gagne 5 voix contre 1. Mozzarella classique, total 77 €, et Inès goûte tout. Tom, tu te rallies ?');});
+E(2400,()=>{say('tom','Je me rallie. La décision du groupe est meilleure que mon avis tout seul, j’avais oublié la contrainte d’argent.');});
+E(1600,()=>{deci('<b>Décision de groupe (5 voix contre 1)</b> : mozzarella classique, budget tenu à 77 €. Tom se rallie. Décision notée sur le tableau du frigo.');
+  banner('Décision : mozzarella classique — 77 €, budget respecté (vote 5–1)');
+  setTask('t4','doing');prog(48);});
+
+/* --- Travail en parallèle : Sofia sort, les autres avancent --- */
+E(2800,()=>{phase('Chacun avance en parallèle');
+  walk('marc',9,66);walk('nina',44,36);walk('ines',66,44);walk('lea',34,56);walk('tom',13,26);
+  stat('marc','met à jour les comptes','busy');stat('lea','suit l’avancement','busy');});
+E(2200,()=>{say('sofia','Je pars faire les courses avec la liste corrigée. Retour dans une heure !');
+  stat('sofia','en course','busy');});
+E(1600,()=>{exitScene('sofia','Sofia est sortie faire les courses — elle travaille hors de l’appartement');
+  sys('Sofia quitte l’appartement. Pendant ce temps, les autres ne l’attendent pas : ils avancent sur ce qui ne dépend pas d’elle.');});
+E(2400,()=>{say('tom','Pas besoin des courses pour la pâte : farine et levure, j’ai déjà tout. Je m’y mets maintenant, ça doit reposer 2 heures.');
+  stat('tom','prépare la pâte','busy');setTask('t6','doing');});
+E(2400,()=>{say('nina','Pendant ce temps je prépare le salon : la grande table, les chaises, la déco.');
+  stat('nina','installe le salon','busy');setTask('t5','doing');prog(58);});
+
+/* --- Sous-tâche découverte en route --- */
+E(3200,()=>{say('tom','Ah, problème que personne n’avait vu : le four ne cuit que 4 pizzas à la fois. 12 pizzas = 3 fournées !');});
+E(1400,()=>{alertEv('<b>Imprévu découvert en travaillant</b> : le four est trop petit. Le plan de départ ne l’avait pas prévu — il faut créer une nouvelle tâche.');});
+E(2200,()=>{walk('lea',20,32);});
+E(2400,()=>{say('lea','Bien vu. J’ajoute une tâche au tableau : « planning de cuisson en 3 fournées ». Et je décale l’apéritif de 30 minutes pour absorber le retard.');});
+E(1400,()=>{task('t8','Planning de cuisson : 3 fournées (19h30 / 20h / 20h30)','lea',null,true);
+  setTask('t8','doing');walk('lea',34,56);});
+E(2000,()=>{setTask('t8','done');stat('lea','planning réorganisé','ok');
+  sys('Léa a réorganisé le planning de toute la soirée à cause d’une découverte de Tom. Le plan s’adapte en marchant.');prog(68);});
+
+/* --- Retour de Sofia --- */
+E(3000,()=>{enterScene('sofia',22,60);
+  say('sofia','Courses faites ! Total : 76 euros et 40 centimes, sous le budget.');});
+E(2200,()=>{packet('sofia','marc');walk('sofia',18,30);
+  say('marc','76,40 € sur 77 prévus : validé. Il reste même 60 centimes.');
+  stat('marc','comptes bouclés','ok');setTask('t4','done');stat('sofia','courses livrées','ok');prog(78);});
+E(2400,()=>{say('tom','Ingrédients reçus, la pâte a reposé : je lance la sauce et les garnitures !');
+  stat('tom','cuisine','busy');});
+
+/* --- Dernier contrôle d'Inès --- */
+E(3200,()=>{walk('ines',24,26);stat('ines','goûte la sauce','busy');});
+E(2200,()=>{say('ines','Comme promis, je goûte... Ta sauce est trop salée, Tom. Servie comme ça, les invités boiront plus qu’ils ne mangeront.');});
+E(1200,()=>{alertEv('<b>Inès détecte un 3e problème</b> : sauce trop salée. Encore une erreur corrigée avant qu’elle n’atteigne les invités.');});
+E(2600,()=>{say('tom','J’ajoute une boîte de tomates pour diluer le sel... Goûte maintenant.');});
+E(2200,()=>{say('ines','Parfaite. Tu peux garnir les 12 pizzas.');walk('ines',66,44);stat('ines','contrôles finis','ok');setTask('t7','done');});
+E(2400,()=>{say('nina','Le salon est prêt : table dressée pour 18, guirlandes accrochées !');
+  stat('nina','salon prêt','ok');setTask('t5','done');prog(90);});
+E(2600,()=>{setTask('t6','done');stat('tom','pizzas prêtes à cuire','ok');
+  say('tom','12 pizzas garnies, fournées calées sur le planning de Léa. Prêt !');});
+
+/* --- Fin --- */
+E(2600,()=>{walk('lea',56,40);phase('Mission accomplie');
+  say('lea','Tout est vert sur le tableau : 18 invités confirmés, budget tenu à 76,40 €, 12 pizzas, 3 fournées planifiées, salon prêt. La soirée peut commencer !');
+  prog(100);});
+E(2000,()=>{deci('<b>Mission accomplie</b> — 8 tâches terminées, 3 problèmes attrapés à temps, 1 décision de groupe, 0 euro de dépassement.');
+  banner('Tout est prêt pour samedi soir', 5000);});
+E(2600,()=>{showRecap();});
+
+SCRIPT=P;
+
+/* ============ RÉCAP ============ */
+function showRecap(){
+  $('#recapBody').innerHTML=`
+  <h3>Tu viens de voir un système multi-agents</h3>
+  <div class="meta">Sans le savoir, tu as observé exactement comment fonctionnent les IA qui travaillent en équipe.</div>
+  <div class="rstats">
+    <div><b>${M.msg}</b><span>échanges</span></div>
+    <div><b>3</b><span>problèmes trouvés</span></div>
+    <div><b>${M.deci}</b><span>décisions</span></div>
+    <div><b>8</b><span>tâches faites</span></div>
+  </div>
+  <h4>La traduction, point par point</h4>
+  <ul>
+    <li><b>Léa</b> = l’agent « orchestrateur » : elle ne cuisine pas, n’achète rien — elle découpe, distribue et réorganise. Dans un vrai système IA, c’est le premier agent, celui qui pilote les autres.</li>
+    <li><b>Le tableau sur le frigo</b> = la mémoire partagée : plutôt que de tout se répéter, chacun lit et écrit au même endroit. Les IA font pareil avec un espace de travail commun.</li>
+    <li><b>Marc et Sofia bloqués</b> = les dépendances : certaines tâches ne peuvent pas commencer avant d’autres. Un bon système sait qui attend quoi — sinon on travaille sur de fausses infos.</li>
+    <li><b>Inès</b> = l’agent « critique » : son seul travail est de chercher les erreurs des autres (les parts, le gluten, le sel). C’est le rôle qui rend un système d’IA fiable, car personne ne voit ses propres erreurs.</li>
+    <li><b>La réunion et le vote</b> = la décision collective : quand deux objectifs se contredisent (budget contre quantité), on ne laisse pas un seul agent trancher — on organise un débat avec des règles.</li>
+    <li><b>Le four trop petit</b> = les imprévus : aucun plan de départ n’est complet. Les bons systèmes créent de nouvelles tâches en découvrant les problèmes, comme Léa avec ses 3 fournées.</li>
+    <li><b>Sofia partie en courses</b> = le travail en parallèle : pendant qu’un agent est occupé ailleurs, les autres n’attendent pas — ils avancent sur ce qui ne dépend pas de lui.</li>
+  </ul>
+  <p style="margin-top:10px">À retenir : un système multi-agents, ce n’est pas six génies — c’est <b>six spécialistes moyens plus une bonne organisation</b> : découpage, dépendances, mémoire commune, critique systématique, décisions de groupe. L’intelligence est dans la coordination.</p>
+  <div>
+    <button class="closeBtn" onclick="document.getElementById('recap').classList.remove('show')">Revoir l’appartement</button>
+    <button class="replay" onclick="replay()">Rejouer</button>
+  </div>`;
+  $('#recap').classList.add('show');
+}
+
+/* ============ DÉMARRAGE ============ */
+clock();
+setTimeout(runNext,900);
+</script>
+
+</body>
+</html>
